@@ -1,5 +1,6 @@
 import React from "react";
 import { firebase } from "../firebase";
+import { getCat } from "../helpers/getCat";
 
 const Formulario = () => {
   const [lista, setLista] = React.useState([]);
@@ -36,12 +37,14 @@ const Formulario = () => {
     }
     try {
       const db = firebase.firestore();
-      const newCat = {
+      let newCat = {
         nombre,
         color,
         descripcion,
       };
-      await db.collection("cats").add(newCat);
+      let addCat = await db.collection("cats").add(newCat);
+      newCat = { id: addCat.id, ...newCat };
+      setLista([...lista, newCat]);
     } catch (error) {
       setError(error);
       console.log(error);
@@ -58,12 +61,16 @@ const Formulario = () => {
     try {
       const db = firebase.firestore();
       await db.collection("cats").doc(id).delete();
+      setLista(lista.filter((a) => a.id !== id));
     } catch (error) {
       console.log(error);
     }
   };
 
   const auxEditar = (item) => {
+    setNombre(item.nombre);
+    setColor(item.color);
+    setDescripcion(item.descripcion);
     setModoEdicion(true);
     setId(item.id);
   };
@@ -83,6 +90,11 @@ const Formulario = () => {
         color,
         descripcion,
       });
+
+      const arrayEditado = lista.map((item) =>
+        item.id === id ? { id: id, nombre, color, descripcion } : item
+      );
+      setLista(arrayEditado);
     } catch (error) {
       setError(error);
       console.log(error);
@@ -100,6 +112,11 @@ const Formulario = () => {
     setDescripcion("");
     setModoEdicion(false);
     setError(null);
+  };
+
+  const getDataCat = async () => {
+    const catGenerate = await getCat();
+    setDescripcion(catGenerate);
   };
 
   return (
@@ -143,9 +160,13 @@ const Formulario = () => {
             {modoEdicion ? "Edit Cat" : "Add a new Cat"}
           </h4>
           <form onSubmit={modoEdicion ? editar : guardarDatos}>
-            {error ? <span className="alert alert-danger">{error}</span> : null}
+            {error ? (
+              <label className="col-form-label mb-4 mt-2">
+                <span className="alert alert-danger">{error}</span>
+              </label>
+            ) : null}
             <input
-              className="form-control mb-2 "
+              className="form-control mb-2"
               type="text"
               placeholder="Enter a name"
               onChange={(e) => setNombre(e.target.value)}
@@ -159,11 +180,16 @@ const Formulario = () => {
               onChange={(e) => setColor(e.target.value)}
               value={color}
             />
-
+            <div
+              className="btn btn-warning btn-block mb-2"
+              onClick={getDataCat}
+            >
+              Generate descripcion
+            </div>
             <input
               className="form-control mb-2"
               type="text"
-              placeholder="Generate ramdon description"
+              placeholder="Press the above button (API CATS)"
               onChange={(e) => setDescripcion(e.target.value)}
               value={descripcion}
             />
